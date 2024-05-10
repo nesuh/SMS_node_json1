@@ -1,0 +1,81 @@
+const express = require('express');
+const students = require('./students');
+
+const app = express();
+
+// Middleware function to check if the requester has the required role(s)
+function hasRole(roles) {
+    return function(req, res, next) {
+        // Assuming you have authentication logic to determine the role of the requester
+        // For demonstration purposes, let's assume the role is stored in req.user.role
+        if (req.user && roles.includes(req.user.role)) {
+            next(); // User has one of the required roles, proceed to the next middleware
+        } else {
+            res.status(403).send('Forbidden'); // User does not have the required role, send 403 Forbidden response
+        }
+    };
+}
+
+// Example route accessible only to students
+app.get('/students', (req, res) => {
+    // Map student data to include only non-sensitive information
+    const nonSensitiveStudents = students.map(student => ({
+        id: student.id,
+        name: student.name
+    }));
+
+    res.json(nonSensitiveStudents);
+});
+
+// Example route accessible only to teachers and directors
+app.get('/grades', hasRole(['teacher', 'director']), (req, res) => {
+    // Filter student data to include only sensitive information (grades) and send to authorized users
+    const sensitiveStudents = students.filter(student => student.sensitive);
+
+    res.json(sensitiveStudents);
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is listening on port ${PORT}`);
+});
+/////////////////////////////////////////////////////////
+const express = require('express');
+const students = require('./students');
+
+const app = express();
+
+// Middleware function to check if the requester is the director
+function isDirector(req, res, next) {
+    // Assuming you have authentication logic to determine the role of the requester
+    // For demonstration purposes, let's assume the role is stored in req.user.role
+    if (req.user && req.user.role === 'director') {
+        next(); // User is the director, proceed to the next middleware
+    } else {
+        res.status(403).send('Forbidden'); // User is not the director, send 403 Forbidden response
+    }
+}
+
+app.get('/students', (req, res) => {
+    // Map student data to include only non-sensitive information
+    const nonSensitiveStudents = students.map(student => ({
+        id: student.id,
+        name: student.name
+    }));
+
+    res.json(nonSensitiveStudents);
+});
+
+app.get('/grades', isDirector, (req, res) => {
+    // Map student data to include only sensitive information (grades) and send to director only
+    const sensitiveStudents = students.filter(student => student.sensitive);
+
+    res.json(sensitiveStudents);
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is listening on port ${PORT}`);
+});
+
+
